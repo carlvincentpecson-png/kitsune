@@ -1,0 +1,116 @@
+local pn = "System"
+
+function onButton1Down(btn, player)
+    if btn.Name == "ColorSelect" then
+        local menu = GUI.newPanel{
+            Width = 200,
+            Height = 150,
+            CanvasWidth = 200,
+            CanvasHeight = 150,
+            BackgroundColor = Color3.new(0.7, 0.7, 0.7),
+            --BackgroundTransparency = 0.4,
+            Name = "ColorMenu",
+            Position = UDim2.new(0, 0, 0, player.ScreenGrab:GetWidth() * 0.2),
+            ZIndex = 1000
+        }
+        
+        local red = Color3.new(1, 0, 0)
+        local gold = Color3.new(1, 1, 0)
+        local white = Color3.new(0.9, 0.9, 1)
+        local silver = Color3.new(0.7, 0.7, 0.7)
+        local galaxy = Color3.new(0.2, 0.2, 0.2, 0.5)
+        
+        for i, col in pairs({red, gold, white, silver, galaxy}) do
+            local btn = GUI.newButton{
+                Text = "",
+                Width = 50,
+                Height = 50,
+                BackgroundColor3 = col,
+                BorderColor3 = col,
+                OnMouseDown = function(self)
+                    local function changeColor(color)
+                        pn:SetCustomProperty("Color", color)
+                        pn.Color:SetValueAsString(color)
+                        local char = player:GetCharacters()[1]
+                        char.Head:SetPrimaryHairColor(color)
+                        char.Head:SetSecondaryHairColor(color)
+                        char.Neck:SetColor(color)
+                        char.Torso:SetColor(color)
+                        char.LeftLeg:SetColor(color)
+                        char.RightLeg:SetColor(color)
+                    end
+                    
+                    if string.match(color, "red") then
+                        changeColor(Color3.new(1, 0, 0))
+                    elseif string.match(color, "gold") then
+                        changeColor(Color3.new(1, 1, 0))
+                    elseif string.match(color, "white") then
+                        changeColor(Color3.new(0.9, 0.9, 1))
+                    elseif string.match(color, "silver") then
+                        changeColor(Color3.new(0.7, 0.7, 0.7))
+                    elseif string.match(color, "galaxy") then
+                        changeColor(Color3.new(0.2, 0.2, 0.2, 0.5))
+                    end
+                end,
+                OnPropertyValueChanged = function(self)
+                    local btn = self:FindAncestorOfClass("GUIButton")
+                    local color = Color3.toHex(btn.BackgroundColor3) .. ""
+                    btn.BackgroundColor3 = Color3.fromHex(color)
+                end,
+                Position = UDim2.new(0, 0, 0, player.ScreenGrab:GetWidth() * 0.2),
+                ZIndex = 1001
+            }
+            
+            local name = ""
+            if string.match(color, "red") then
+                name = "Red"
+            elseif string.match(color, "gold") then
+                name = "Gold"
+            elseif string.match(color, "white") then
+                name = "White"
+            elseif string.match(color, "silver") then
+                name = "Silver"
+            elseif string.match(color, "galaxy") then
+                name = "Galaxy"
+            end
+            
+            btn[#btn+1] = {Text = name, BackgroundColor3 = col, BorderColor3 = col}
+        end
+        
+        menu:AddItem(btn)
+    end
+end
+
+function onEventGUI()
+    local plyr = player
+    local pn = plyr:GetCharacter():FindFirstChildWhichIsA("Humanoid")
+    
+    if pn ~= nil then
+        local col = pn:GetCustomProperty("Color"):WaitForFirstChild()
+        
+        if col ~= nil then
+            local btn = menu.ColorMenu:FindChildByName("ColorSelect")[1]
+            local colStr = Color3.toHex(btn.BackgroundColor3)
+            
+            if string.match(colStr, "red") then
+                col = Color3.new(1, 0, 0)
+            elseif string.match(colStr, "gold") then
+                col = Color3.new(1, 1, 0)
+            elseif string.match(colStr, "white") then
+                col = Color3.new(0.9, 0.9, 1)
+            elseif string.match(colStr, "silver") then
+                col = Color3.new(0.7, 0.7, 0.7)
+            elseif string.match(colStr, "galaxy") then
+                col = Color3.new(0.2, 0.2, 0.2, 0.5)
+            end
+            
+            local chs = plyr:GetCharacter():FindAllDescendantsOfClass("Model").HumanoidRootPart:FindAllDescendantsOfClass("Model")
+            
+            for _, ch in pairs(chs) do
+                ch:SetPrimaryHairColor(col)
+                ch:SetSecondaryHairColor(col)
+                ch:SetColor(col)
+            end
+        end
+    end
+end
