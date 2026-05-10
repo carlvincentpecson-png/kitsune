@@ -3,25 +3,28 @@ if pn == "BloxFruits" then
     local ui = GUI.newPanel()
     ui.Parent = FindMetaTable("Player").SelectedCharacter
 
+    local menu = GUI.newPanel{
+        Width = 200,
+        Height = 50,
+        CanvasWidth = 200,
+        CanvasHeight = 50,
+        BackgroundColor = Color3.new(0.7, 0.7, 0.7),
+        --BackgroundTransparency = 0.4,
+        Name = "ColorMenu",
+        Position = UDim2.new(0, 0, 0, player.ScreenGrab:GetWidth() * 0.2),
+        ZIndex = 1000
+    }
+
     local function onButton1Down(btn)
         if btn.Name == "ColorSelect" then
-            local menu = GUI.newPanel{
-                Width = 200,
-                Height = 150,
-                CanvasWidth = 200,
-                CanvasHeight = 150,
-                BackgroundColor = Color3.new(0.7, 0.7, 0.7),
-                --BackgroundTransparency = 0.4,
-                Name = "ColorMenu",
-                Position = UDim2.new(0, 0, 0, player.ScreenGrab:GetWidth() * 0.2),
-                ZIndex = 1000
-            }
-
             local red = Color3.new(1, 0, 0)
             local gold = Color3.new(1, 1, 0)
             local white = Color3.new(0.9, 0.9, 1)
             local silver = Color3.new(0.7, 0.7, 0.7)
             local galaxy = Color3.new(0.2, 0.2, 0.2, 0.5)
+
+            local menuBar = GUI.newPanel()
+            menuBar.Parent = menu
 
             for i, col in pairs({red, gold, white, silver, galaxy}) do
                 local btn = GUI.newButton{
@@ -37,9 +40,18 @@ if pn == "BloxFruits" then
                 }
 
                 btn[#btn+1] = {Text = name, BackgroundColor3 = col, BorderColor3 = col}
-            end
 
-            menu:AddItem(btn)
+                if i == 1 then
+                    btn[#btn+1] = GUI.newUICorner(0, 1, 5)
+                    btn[#btn+1] = GUI.newUICorner(1, 1, 5)
+                    btn[#btn+1] = GUI.newUICorner(0, 0, 5)
+                    btn[#btn+1] = GUI.newUICorner(1, 0, 5)
+                    btn[#btn+1] = GUI.newUICorner(1, 1, 5)
+                    btn[#btn+1] = GUI.newUICorner(0, 0, 5)
+                end
+
+                btn[#btn+1] = {BackgroundColor3 = col}
+            end
         end
     end
 
