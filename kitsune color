@@ -1,4 +1,7 @@
-local pn = "System"
+local pn = script.Parent.Parent.Parent.Script.Parent.Name
+if pn == "BloxFruits" then
+    local ui = GUI.newPanel()
+    ui.Parent = FindMetaTable("Player").SelectedCharacter
 
 function onButton1Down(btn, player)
     if btn.Name == "ColorSelect" then
