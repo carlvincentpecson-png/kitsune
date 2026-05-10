@@ -11,7 +11,44 @@ if pn == "BloxFruits" then
                 CanvasWidth = 200,
                 CanvasHeight = 150,
                 BackgroundColor = Color3.new(0.7, 0.7, 0.7),
-                --Bac...mProperty("Color"):WaitForFirstChild()
+                --BackgroundTransparency = 0.4,
+                Name = "ColorMenu",
+                Position = UDim2.new(0, 0, 0, player.ScreenGrab:GetWidth() * 0.2),
+                ZIndex = 1000
+            }
+
+            local red = Color3.new(1, 0, 0)
+            local gold = Color3.new(1, 1, 0)
+            local white = Color3.new(0.9, 0.9, 1)
+            local silver = Color3.new(0.7, 0.7, 0.7)
+            local galaxy = Color3.new(0.2, 0.2, 0.2, 0.5)
+
+            for i, col in pairs({red, gold, white, silver, galaxy}) do
+                local btn = GUI.newButton{
+                    Text = "",
+                    Width = 50,
+                    Height = 50,
+                    BackgroundColor3 = col,
+                    BorderColor3 = col,
+                    OnMouseDown = function(self)
+                        ChangeSkin(col)
+                        Notification("Skin Changed Successfully!")
+                    end
+                }
+
+                btn[#btn+1] = {Text = name, BackgroundColor3 = col, BorderColor3 = col}
+            end
+
+            menu:AddItem(btn)
+        end
+    end
+
+    function onEventGUI()
+        local plyr = player
+        local pn = plyr:GetCharacter():FindFirstChildWhichIsA("Humanoid")
+
+        if pn ~= nil then
+            local col = pn:GetCustomProperty("Color"):WaitForFirstChild()
 
             if col ~= nil then
                 local btn = menu.ColorMenu:FindChildByName("ColorSelect")[1]
@@ -43,13 +80,7 @@ if pn == "BloxFruits" then
     function ChangeSkin(skin)
         coroutine.wrap(function()
             humanoid:WaitForChild("Head"):WaitForChild("Humanoid"):SetCustomProperty("Skin", skin)
+            Notification("Skin Changed Successfully!")
         end)(coroutine.yield)("None")
     end
-
-    local btn = menu.ColorMenu:FindChildByName("ColorSelect")[1]
-    btn:GetPropertyChangedSignal("BackgroundColor"):Connect(function(self, obj)
-        if obj ~= nil then
-            print("Color changed successfully!")
-        end
-    end)
 end
