@@ -1,219 +1,293 @@
--- Dragon Fruit Advanced Script
--- Place in Roblox Studio executor or script hub
+-- Western Dragon Fruit Spawner & Auto-Eater Script
+-- Advanced Blox Fruits Script (Roblox Studio)
 
-local Player = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
-local DetectionRange = 5000 -- Increased range for Dragon Fruit
-local AutoCollectDelay = 0.5 -- Delay before auto-collect
-local TeleportSpeed = 150 -- Teleport movement speed
-local ScanInterval = 1 -- Seconds between scans
-
--- Dragon Fruit Identification Data
-local DragonFruitModels = {
-    "DragonFruitModel",
-    "DragonFruitObject",
-    "DragonFruitSpawn",
-    "RealDragonFruit" -- Primary identifier
+local WESTERN_DRAGON_ID = "WesternDragonFruit"  -- Custom identifier
+local DRAGON_SKILLS = {
+    "DragonBreath",
+    "DragonClaw",
+    "DragonFlight",
+    "DragonTransform"
 }
 
-local DragonFruitColors = {
-    Color3.fromRGB(255, 50, 50), -- Red dragon aura
-    Color3.fromRGB(255, 100, 0), -- Orange dragon glow
-    Color3.fromRGB(200, 0, 100)  -- Purple dragon energy
-}
-
--- Advanced Detection System
-function FindDragonFruit()
-    local foundFruit = nil
-    local shortestDistance = DetectionRange
+-- Spawn Western Dragon Fruit Function
+function spawnWesternDragonFruit()
+    -- Create visual fruit model
+    local fruitModel = Instance.new("Part")
+    fruitModel.Name = WESTERN_DRAGON_ID
+    fruitModel.Size = Vector3.new(3, 3, 3)
+    fruitModel.Position = HumanoidRootPart.Position + Vector3.new(0, 5, 5)
+    fruitModel.Anchored = true
+    fruitModel.CanCollide = true
+    fruitModel.BrickColor = BrickColor.new("Bright blue")
+    fruitModel.Material = Enum.Material.Neon
     
-    for _, obj in pairs(game:GetService("Workspace"):GetChildren()) do
-        -- Check by name pattern
-        for _, fruitName in pairs(DragonFruitModels) do
-            if string.find(obj.Name, fruitName) then
-                local distance = (HumanoidRootPart.Position - obj.Position).Magnitude
-                if distance < shortestDistance then
-                    shortestDistance = distance
-                    foundFruit = obj
-                end
-            end
-        end
-        
-        -- Check by visual properties (color/aura)
-        if obj:IsA("BasePart") then
-            local color = obj.Color
-            for _, dragonColor in pairs(DragonFruitColors) do
-                if color == dragonColor then
-                    local distance = (HumanoidRootPart.Position - obj.Position).Magnitude
-                    if distance < shortestDistance then
-                        shortestDistance = distance
-                        foundFruit = obj
-                    end
-                end
-            end
-            
-            -- Check for dragon particle effects
-            if obj:FindFirstChild("ParticleEmitter") then
-                local emitter = obj.ParticleEmitter
-                if emitter.Color == ColorSequence.new(dragonColor) then
-                    foundFruit = obj
-                end
-            end
-        end
-    end
+    -- Add glowing effect
+    local glow = Instance.new("PointLight")
+    glow.Parent = fruitModel
+    glow.Color = Color3.fromRGB(0, 150, 255)
+    glow.Range = 15
+    glow.Brightness = 2
     
-    return foundFruit, shortestDistance
+    -- Add fruit texture/mesh
+    local mesh = Instance.new("SpecialMesh")
+    mesh.Parent = fruitModel
+    mesh.MeshType = Enum.MeshType.FileMesh
+    mesh.MeshId = "rbxassetid://your_dragon_mesh_id"  -- Replace with actual mesh ID
+    mesh.TextureId = "rbxassetid://your_dragon_texture_id"
+    mesh.Scale = Vector3.new(2, 2, 2)
+    
+    -- Add interaction prompt
+    local proximityPrompt = Instance.new("ProximityPrompt")
+    proximityPrompt.Parent = fruitModel
+    proximityPrompt.ActionText = "Eat Western Dragon Fruit"
+    proximityPrompt.ObjectText = "Legendary Fruit"
+    proximityPrompt.MaxActivationDistance = 10
+    proximityPrompt.HoldDuration = 0.5
+    
+    -- Animation when spawned
+    local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(fruitModel, tweenInfo, {Position = HumanoidRootPart.Position + Vector3.new(0, 10, 0)})
+    tween:Play()
+    
+    fruitModel.Parent = Workspace
+    
+    -- Trigger eat function when prompted
+    proximityPrompt.Triggered:Connect(function()
+        eatWesternDragonFruit(fruitModel)
+    end)
+    
+    return fruitModel
 end
 
--- Advanced Teleport to Fruit
-function TeleportToFruit(fruitObject)
-    if not fruitObject or not fruitObject:IsA("BasePart") then return false end
+-- Eat Western Dragon Fruit Function
+function eatWesternDragonFruit(fruitModel)
+    -- Remove fruit visually
+    fruitModel:Destroy()
     
-    local targetPosition = fruitObject.Position + Vector3.new(0, 3, 0) -- Offset above fruit
+    -- Simulate eating animation
+    local eatAnim = Instance.new("Animation")
+    eatAnim.AnimationId = "rbxassetid://your_eating_animation_id"
+    local animTrack = Character.Humanoid:LoadAnimation(eatAnim)
+    animTrack:Play()
     
-    -- Smooth teleport with velocity simulation
-    local startPos = HumanoidRootPart.Position
-    local distance = (targetPosition - startPos).Magnitude
-    local travelTime = distance / TeleportSpeed
+    -- Equip Dragon Fruit skills
+    equipDragonSkills()
     
-    -- Create teleport effect
-    for i = 1, 100 do
-        local fraction = i / 100
-        local intermediatePos = startPos + (targetPosition - startPos) * fraction
-        
-        -- Move character smoothly
-        HumanoidRootPart.CFrame = CFrame.new(intermediatePos)
-        
-        -- Wait for smooth movement
-        wait(travelTime / 100)
-    end
-    
-    -- Final position adjustment
-    HumanoidRootPart.CFrame = CFrame.new(targetPosition)
-    return true
+    -- Notify player
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Western Dragon Fruit",
+        Text = "You have consumed the Western Dragon Fruit! Dragon skills equipped.",
+        Icon = "rbxassetid://your_icon_id",
+        Duration = 5
+    })
 end
 
--- Auto-Collect Function
-function CollectDragonFruit(fruitObject)
-    if not fruitObject then return false end
+-- Equip Dragon Skills Function
+function equipDragonSkills()
+    -- Find skill remote events/functions
+    local remoteEvents = ReplicatedStorage:FindFirstChild("RemoteEvents")
     
-    -- Simulate click interaction
-    local fruitClick = fruitObject:FindFirstChild("ClickDetector")
-    if fruitClick then
-        fruitClick.MaxActivationDistance = 1000 -- Temporarily increase range
-        wait(AutoCollectDelay)
-        
-        -- Fire click event
-        fireclickdetector(fruitClick)
-        
-        -- Reset activation distance
-        fruitClick.MaxActivationDistance = 10
-    else
-        -- Alternative collection method
-        fruitObject:Destroy()
-        game:GetService("ReplicatedStorage").FruitCollection:FireServer("DragonFruit")
-    end
-    
-    return true
-end
-
--- Main Scanning Loop
-function DragonFruitScanner()
-    while true do
-        wait(ScanInterval)
-        
-        local fruit, distance = FindDragonFruit()
-        
-        if fruit then
-            print("[Dragon Fruit] Found at distance: " .. math.floor(distance))
+    if remoteEvents then
+        for _, skillName in pairs(DRAGON_SKILLS) do
+            local skillEvent = remoteEvents:FindFirstChild(skillName)
             
-            -- Teleport to fruit
-            TeleportToFruit(fruit)
-            
-            -- Auto-collect
-            CollectDragonFruit(fruit)
-            
-            -- Success message
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Dragon Fruit Collected",
-                Text = "Successfully obtained Dragon Fruit!",
-                Duration = 5
-            })
-        else
-            print("[Dragon Fruit] Scanning... No fruit found.")
-        end
-    end
-end
-
--- Spawn Prediction System
-function PredictDragonSpawn()
-    -- Analyze spawn points from map data
-    local spawnPoints = {}
-    
-    for _, island in pairs(game:GetService("Workspace").Islands:GetChildren()) do
-        for _, spawner in pairs(island:GetChildren()) do
-            if spawner.Name == "FruitSpawner" or spawner.Name == "SpecialSpawnPoint" then
-                spawnPoints[#spawnPoints + 1] = spawner.Position
+            if skillEvent then
+                -- Bind skill to key presses
+                bindSkillToKey(skillName, skillEvent)
+            else
+                -- Create fake event for testing
+                createFakeSkill(skillName)
             end
         end
     end
     
-    -- Calculate next spawn based on time patterns
-    local currentTime = game:GetService("Workspace").DistributedGameTime
-    local spawnCycle = 1800 -- 30 minutes estimated cycle
+    -- Change player appearance/effects
+    applyDragonEffects()
+end
+
+-- Bind Skills to Keys
+function bindSkillToKey(skillName, skillEvent)
+    local keyBindings = {
+        ["DragonBreath"] = Enum.KeyCode.Q,
+        ["DragonClaw"] = Enum.KeyCode.E,
+        ["DragonFlight"] = Enum.KeyCode.R,
+        ["DragonTransform"] = Enum.KeyCode.T
+    }
     
-    for _, point in pairs(spawnPoints) do
-        local predictedTime = (currentTime % spawnCycle) + math.random(60, 300)
-        print("[Prediction] Possible spawn at: " .. tostring(point) .. " in ~" .. math.floor(predictedTime) .. "s")
+    local key = keyBindings[skillName]
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == key then
+            -- Fire skill event
+            if skillEvent:IsA("RemoteEvent") then
+                skillEvent:FireServer()
+            elseif skillEvent:IsA("RemoteFunction") then
+                skillEvent:InvokeServer()
+            end
+            
+            -- Visual feedback
+            skillFeedback(skillName)
+        end
+    end)
+end
+
+-- Create Fake Skill (if real ones don't exist)
+function createFakeSkill(skillName)
+    print("Creating fake skill: " .. skillName)
+    
+    local functionName = skillName .. "Function"
+    
+    -- Create local effect based on skill
+    if skillName == "DragonBreath" then
+        spawnFireBreath()
+    elseif skillName == "DragonFlight" then
+        enableFlight()
+    elseif skillName == "DragonTransform" then
+        transformToDragon()
     end
 end
 
--- Create Visual HUD
-function CreateDragonHUD()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "DragonFruitHUD"
-    ScreenGui.Parent = Player.PlayerGui
+-- Dragon Breath Effect
+function spawnFireBreath()
+    local firePart = Instance.new("Part")
+    firePart.Size = Vector3.new(5, 1, 10)
+    firePart.Position = HumanoidRootPart.Position + Vector3.new(0, 0, 5)
+    firePart.Anchored = true
+    firePart.BrickColor = BrickColor.new("Bright orange")
+    firePart.Material = Enum.Material.Neon
     
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 300, 0, 150)
-    Frame.Position = UDim2.new(0.8, 0, 0.1, 0)
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    Frame.Parent = ScreenGui
+    local fire = Instance.new("Fire")
+    fire.Parent = firePart
+    fire.Color = Color3.fromRGB(255, 100, 0)
+    fire.Size = 15
     
-    local Title = Instance.new("TextLabel")
-    Title.Text = "DRAGON FRUIT SYSTEM"
-    Title.Size = UDim2.new(1, 0, 0, 30)
-    Title.TextColor3 = Color3.fromRGB(255, 50, 50)
-    Title.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    Title.Parent = Frame
-    
-    local Status = Instance.new("TextLabel")
-    Status.Text = "Status: Scanning..."
-    Status.Size = UDim2.new(1, 0, 0, 30)
-    Status.Position = UDim2.new(0, 0, 0.2, 0)
-    Status.Parent = Frame
-    
-    local Distance = Instance.new("TextLabel")
-    Distance.Text = "Distance: N/A"
-    Distance.Size = UDim2.new(1, 0, 0, 30)
-    Distance.Position = UDim2.new(0, 0, 0.4, 0)
-    Distance.Parent = Frame
-    
-    local Timer = Instance.new("TextLabel")
-    Timer.Text = "Next Scan: 1s"
-    Timer.Size = UDim2.new(1, 0, 0, 30)
-    Timer.Position = UDim2.new(0, 0, 0.6, 0)
-    Timer.Parent = Frame
-    
-    return {Frame, Status, Distance, Timer}
+    firePart.Parent = Workspace
+    game.Debris:AddItem(firePart, 3)
 end
 
--- Initialize System
-local HUD = CreateDragonHUD()
-PredictDragonSpawn()
+-- Flight Ability
+function enableFlight()
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Parent = HumanoidRootPart
+    bodyVelocity.MaxForce = Vector3.new(0, 10000, 0)
+    
+    UserInputService.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.Space then
+            bodyVelocity.Velocity = Vector3.new(0, 50, 0)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.Space then
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+    end)
+end
 
--- Start scanner
-DragonFruitScanner()
+-- Dragon Transformation
+function transformToDragon()
+    -- Change character appearance temporarily
+    for _, part in pairs(Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.BrickColor = BrickColor.new("Bright blue")
+            part.Material = Enum.Material.Neon
+            
+            local glow = Instance.new("PointLight")
+            glow.Parent = part
+            glow.Color = Color3.fromRGB(0, 200, 255)
+            glow.Range = 5
+        end
+    end
+    
+    -- Increase size/scale
+    Character.Humanoid:WaitForChild("BodyHeightScale").Value = 1.5
+    Character.Humanoid:WaitForChild("BodyWidthScale").Value = 1.5
+    
+    -- Timer for transformation duration
+    wait(30)
+    
+    -- Revert transformation
+    revertTransformation()
+end
+
+function revertTransformation()
+    for _, part in pairs(Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.BrickColor = BrickColor.new("Medium stone grey")
+            part.Material = Enum.Material.Plastic
+            
+            local light = part:FindFirstChild("PointLight")
+            if light then
+                light:Destroy()
+            end
+        end
+    end
+    
+    Character.Humanoid:WaitForChild("BodyHeightScale").Value = 1
+    Character.Humanoid:WaitForChild("BodyWidthScale").Value = 1
+end
+
+-- Apply Dragon Visual Effects
+function applyDragonEffects()
+    -- Add permanent dragon aura
+    local aura = Instance.new("Part")
+    aura.Name = "DragonAura"
+    aura.Size = Vector3.new(5, 5, 5)
+    aura.Position = HumanoidRootPart.Position
+    aura.Anchored = false
+    aura.CanCollide = false
+    aura.Transparency = 0.7
+    aura.BrickColor = BrickColor.new("Bright blue")
+    
+    local weld = Instance.new("Weld")
+    weld.Parent = aura
+    weld.Part0 = HumanoidRootPart
+    weld.Part1 = aura
+    weld.C0 = CFrame.new(0, 0, 0)
+    
+    local particleEmitter = Instance.new("ParticleEmitter")
+    particleEmitter.Parent = aura
+    particleEmitter.Color = ColorSequence.new(Color3.fromRGB(0,とに、255))
+    particleEmitter.Size = NumberSequence.new(1)
+    particleEmitter.Lifetime = NumberRange.new(1, 3)
+    particleEmitter.Rate = 50
+    
+    aura.Parent = Character
+end
+
+-- Skill Feedback Visualization
+function skillFeedback(skillName)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = Player.PlayerGui
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = screenGui
+    textLabel.Text = skillName .. " Activated!"
+    textLabel.Size = UDim2.new(0, 200, 0, 50)
+    textLabel.Position = UDim2.new(0.5, -100, 0.8, 0)
+    textLabel.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.Font = Enum.Font.GothamBold
+    
+    game.Debris:AddItem(screenGui, 1)
+end
+
+-- Main Execution
+spawnWesternDragonFruit()
+
+-- Optional: Auto-spawn every 60 seconds
+while true do
+    wait(60)
+    spawnWesternDragonFruit()
+end
