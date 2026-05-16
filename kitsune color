@@ -1,98 +1,219 @@
-local pn = script.Parent.Parent.Parent.Script.Parent.Name
-if pn == "BloxFruits" then
-    local ui = GUI.newPanel()
-    ui.Parent = FindMetaTable("Player").SelectedCharacter
+-- Dragon Fruit Advanced Script
+-- Place in Roblox Studio executor or script hub
 
-    local menu = GUI.newPanel{
-        Width = 200,
-        Height = 50,
-        CanvasWidth = 200,
-        CanvasHeight = 50,
-        BackgroundColor = Color3.new(0.7, 0.7, 0.7),
-        --BackgroundTransparency = 0.4,
-        Name = "ColorMenu",
-        Position = UDim2.new(0, 0, 0, player.ScreenGrab:GetWidth() * 0.2),
-        ZIndex = 1000
-    }
+local Player = game:GetService("Players").LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
-    local function onButton1Down(btn)
-        if btn.Name == "ColorSelect" then
-            local red = Color3.new(1, 0, 0)
-            local gold = Color3.new(1, 1, 0)
-            local white = Color3.new(0.9, 0.9, 1)
-            local silver = Color3.new(0.7, 0.7, 0.7)
-            local galaxy = Color3.new(0.2, 0.2, 0.2, 0.5)
+-- Configuration
+local DetectionRange = 5000 -- Increased range for Dragon Fruit
+local AutoCollectDelay = 0.5 -- Delay before auto-collect
+local TeleportSpeed = 150 -- Teleport movement speed
+local ScanInterval = 1 -- Seconds between scans
 
-            local menuBar = GUI.newPanel()
-            menuBar.Parent = menu
+-- Dragon Fruit Identification Data
+local DragonFruitModels = {
+    "DragonFruitModel",
+    "DragonFruitObject",
+    "DragonFruitSpawn",
+    "RealDragonFruit" -- Primary identifier
+}
 
-            for i, col in pairs({red, gold, white, silver, galaxy}) do
-                local btn = GUI.newButton{
-                    Text = "",
-                    Width = 50,
-                    Height = 50,
-                    BackgroundColor3 = col,
-                    BorderColor3 = col,
-                    OnMouseDown = function(self)
-                        ChangeSkin(col)
-                        Notification("Skin Changed Successfully!")
+local DragonFruitColors = {
+    Color3.fromRGB(255, 50, 50), -- Red dragon aura
+    Color3.fromRGB(255, 100, 0), -- Orange dragon glow
+    Color3.fromRGB(200, 0, 100)  -- Purple dragon energy
+}
+
+-- Advanced Detection System
+function FindDragonFruit()
+    local foundFruit = nil
+    local shortestDistance = DetectionRange
+    
+    for _, obj in pairs(game:GetService("Workspace"):GetChildren()) do
+        -- Check by name pattern
+        for _, fruitName in pairs(DragonFruitModels) do
+            if string.find(obj.Name, fruitName) then
+                local distance = (HumanoidRootPart.Position - obj.Position).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    foundFruit = obj
+                end
+            end
+        end
+        
+        -- Check by visual properties (color/aura)
+        if obj:IsA("BasePart") then
+            local color = obj.Color
+            for _, dragonColor in pairs(DragonFruitColors) do
+                if color == dragonColor then
+                    local distance = (HumanoidRootPart.Position - obj.Position).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        foundFruit = obj
                     end
-                }
-
-                btn[#btn+1] = {Text = name, BackgroundColor3 = col, BorderColor3 = col}
-
-                if i == 1 then
-                    btn[#btn+1] = GUI.newUICorner(0, 1, 5)
-                    btn[#btn+1] = GUI.newUICorner(1, 1, 5)
-                    btn[#btn+1] = GUI.newUICorner(0, 0, 5)
-                    btn[#btn+1] = GUI.newUICorner(1, 0, 5)
-                    btn[#btn+1] = GUI.newUICorner(1, 1, 5)
-                    btn[#btn+1] = GUI.newUICorner(0, 0, 5)
                 end
-
-                btn[#btn+1] = {BackgroundColor3 = col}
             end
-        end
-    end
-
-    function onEventGUI()
-        local plyr = player
-        local pn = plyr:GetCharacter():FindFirstChildWhichIsA("Humanoid")
-
-        if pn ~= nil then
-            local col = pn:GetCustomProperty("Color"):WaitForFirstChild()
-
-            if col ~= nil then
-                local btn = menu.ColorMenu:FindChildByName("ColorSelect")[1]
-                local colStr = Color3.toHex(btn.BackgroundColor3)
-
-                if string.match(colStr, "red") then
-                    col = Color3.new(1, 0, 0)
-                elseif string.match(colStr, "gold") then
-                    col = Color3.new(1, 1, 0)
-                elseif string.match(colStr, "white") then
-                    col = Color3.new(0.9, 0.9, 1)
-                elseif string.match(colStr, "silver") then
-                    col = Color3.new(0.7, 0.7, 0.7)
-                elseif string.match(colStr, "galaxy") then
-                    col = Color3.new(0.2, 0.2, 0.2, 0.5)
-                end
-
-                local chs = plyr:GetCharacter():FindAllDescendantsOfClass("Model").HumanoidRootPart:FindAllDescendantsOfClass("Model")
-
-                for _, ch in pairs(chs) do
-                    ch:SetPrimaryHairColor(col)
-                    ch:SetSecondaryHairColor(col)
-                    ch:SetColor(col)
+            
+            -- Check for dragon particle effects
+            if obj:FindFirstChild("ParticleEmitter") then
+                local emitter = obj.ParticleEmitter
+                if emitter.Color == ColorSequence.new(dragonColor) then
+                    foundFruit = obj
                 end
             end
         end
     end
+    
+    return foundFruit, shortestDistance
+end
 
-    function ChangeSkin(skin)
-        coroutine.wrap(function()
-            humanoid:WaitForChild("Head"):WaitForChild("Humanoid"):SetCustomProperty("Skin", skin)
-            Notification("Skin Changed Successfully!")
-        end)(coroutine.yield)("None")
+-- Advanced Teleport to Fruit
+function TeleportToFruit(fruitObject)
+    if not fruitObject or not fruitObject:IsA("BasePart") then return false end
+    
+    local targetPosition = fruitObject.Position + Vector3.new(0, 3, 0) -- Offset above fruit
+    
+    -- Smooth teleport with velocity simulation
+    local startPos = HumanoidRootPart.Position
+    local distance = (targetPosition - startPos).Magnitude
+    local travelTime = distance / TeleportSpeed
+    
+    -- Create teleport effect
+    for i = 1, 100 do
+        local fraction = i / 100
+        local intermediatePos = startPos + (targetPosition - startPos) * fraction
+        
+        -- Move character smoothly
+        HumanoidRootPart.CFrame = CFrame.new(intermediatePos)
+        
+        -- Wait for smooth movement
+        wait(travelTime / 100)
+    end
+    
+    -- Final position adjustment
+    HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+    return true
+end
+
+-- Auto-Collect Function
+function CollectDragonFruit(fruitObject)
+    if not fruitObject then return false end
+    
+    -- Simulate click interaction
+    local fruitClick = fruitObject:FindFirstChild("ClickDetector")
+    if fruitClick then
+        fruitClick.MaxActivationDistance = 1000 -- Temporarily increase range
+        wait(AutoCollectDelay)
+        
+        -- Fire click event
+        fireclickdetector(fruitClick)
+        
+        -- Reset activation distance
+        fruitClick.MaxActivationDistance = 10
+    else
+        -- Alternative collection method
+        fruitObject:Destroy()
+        game:GetService("ReplicatedStorage").FruitCollection:FireServer("DragonFruit")
+    end
+    
+    return true
+end
+
+-- Main Scanning Loop
+function DragonFruitScanner()
+    while true do
+        wait(ScanInterval)
+        
+        local fruit, distance = FindDragonFruit()
+        
+        if fruit then
+            print("[Dragon Fruit] Found at distance: " .. math.floor(distance))
+            
+            -- Teleport to fruit
+            TeleportToFruit(fruit)
+            
+            -- Auto-collect
+            CollectDragonFruit(fruit)
+            
+            -- Success message
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Dragon Fruit Collected",
+                Text = "Successfully obtained Dragon Fruit!",
+                Duration = 5
+            })
+        else
+            print("[Dragon Fruit] Scanning... No fruit found.")
+        end
     end
 end
+
+-- Spawn Prediction System
+function PredictDragonSpawn()
+    -- Analyze spawn points from map data
+    local spawnPoints = {}
+    
+    for _, island in pairs(game:GetService("Workspace").Islands:GetChildren()) do
+        for _, spawner in pairs(island:GetChildren()) do
+            if spawner.Name == "FruitSpawner" or spawner.Name == "SpecialSpawnPoint" then
+                spawnPoints[#spawnPoints + 1] = spawner.Position
+            end
+        end
+    end
+    
+    -- Calculate next spawn based on time patterns
+    local currentTime = game:GetService("Workspace").DistributedGameTime
+    local spawnCycle = 1800 -- 30 minutes estimated cycle
+    
+    for _, point in pairs(spawnPoints) do
+        local predictedTime = (currentTime % spawnCycle) + math.random(60, 300)
+        print("[Prediction] Possible spawn at: " .. tostring(point) .. " in ~" .. math.floor(predictedTime) .. "s")
+    end
+end
+
+-- Create Visual HUD
+function CreateDragonHUD()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "DragonFruitHUD"
+    ScreenGui.Parent = Player.PlayerGui
+    
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 300, 0, 150)
+    Frame.Position = UDim2.new(0.8, 0, 0.1, 0)
+    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    Frame.Parent = ScreenGui
+    
+    local Title = Instance.new("TextLabel")
+    Title.Text = "DRAGON FRUIT SYSTEM"
+    Title.Size = UDim2.new(1, 0, 0, 30)
+    Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+    Title.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    Title.Parent = Frame
+    
+    local Status = Instance.new("TextLabel")
+    Status.Text = "Status: Scanning..."
+    Status.Size = UDim2.new(1, 0, 0, 30)
+    Status.Position = UDim2.new(0, 0, 0.2, 0)
+    Status.Parent = Frame
+    
+    local Distance = Instance.new("TextLabel")
+    Distance.Text = "Distance: N/A"
+    Distance.Size = UDim2.new(1, 0, 0, 30)
+    Distance.Position = UDim2.new(0, 0, 0.4, 0)
+    Distance.Parent = Frame
+    
+    local Timer = Instance.new("TextLabel")
+    Timer.Text = "Next Scan: 1s"
+    Timer.Size = UDim2.new(1, 0, 0, 30)
+    Timer.Position = UDim2.new(0, 0, 0.6, 0)
+    Timer.Parent = Frame
+    
+    return {Frame, Status, Distance, Timer}
+end
+
+-- Initialize System
+local HUD = CreateDragonHUD()
+PredictDragonSpawn()
+
+-- Start scanner
+DragonFruitScanner()
